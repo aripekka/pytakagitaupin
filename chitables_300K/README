@@ -1,0 +1,9 @@
+The files in this folder contain the Fourier components chi_0, chi_h and chi_hbar of the susceptibility of an ideal crystal. 
+
+Rows of the chitable files give the components for given photon energy and they are formatted as follows:
+
+energy[in keV] real(chi_0) imag(chi_0) real(chi_h) imag(chi_h) real(chi_hbar) imag(chi_hbar)
+
+The convention is so that real(chi_0) and imag(chi_0) are negative. For chi_h and chi_hbar the signs are not important as long as their phase difference is preserved. (For consistency, it is adviced to set sign(real(chi_h))=-1 ). The coefficients can be obtained using XOP, for example. The original author (APH) has used DABAX xFh in XOP 2.3 Beta with f0_InterTables.dat, f1f2_EPDL97.dat and CrossSec_XCOM.dat data files (Files available at http://ftp.esrf.eu/pub/scisoft/xop2.3/DabaxFiles/).
+
+APH 2014
