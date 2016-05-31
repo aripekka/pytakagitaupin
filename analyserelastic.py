@@ -31,7 +31,7 @@ def analyser_elastic(ttsolution,diameter):
     denominator = 5*(S[0,0]+S[1,1])+6*S[1,0]+S[5,5]
     A = -4/3*(S[2,0]+S[2,1])/denominator
     B = -2/3*np.sqrt((S[2,1]-S[2,0])**2 + S[2,5]**2)/denominator
-    phi0 = np.arctan(S[2,5]/(S[2,1]-S[2,0]))
+    phi0 = np.arctan2(S[2,5],(S[2,1]-S[2,0]))
 
     epsilon = (A+B*np.cos(2*TH+phi0))*(R/Rb)**2
 
