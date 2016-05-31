@@ -28,10 +28,9 @@ def compute_S_matrix_fast(zdir, xtal):
     Cc[1,2,1,2], Cc[2,1,1,2], Cc[1,2,2,1], Cc[2,1,2,1] = c2323, c2323, c2323, c2323
     Cc[0,1,0,1], Cc[1,0,0,1], Cc[0,1,1,0], Cc[1,0,1,0] = c2323, c2323, c2323, c2323
 
-    Q2 = rotation_matrix(zdir)
+    Q = rotation_matrix(zdir)
    
     #Rotate the tensor
-    Q = np.dot(Q, Q2)
 
     Crot = np.zeros((3,3,3,3))
     for i in range(3):
@@ -58,6 +57,20 @@ def compute_S_matrix_fast(zdir, xtal):
     S = np.linalg.inv(C)
 
     return S, C
+
+def mean_poisson(S):
+    '''Computes the mean of the Poisson ratio over 2*pi (xy-plane) from given S matrix'''
+
+    #Rotated matrix components (computed with Maxima)
+    x = np.linspace(0,2*np.pi,500)
+
+    Sr11 = S[0,0]*np.cos(x)**4 + S[1,1]*np.sin(x)**4 \
+         + 2*np.sin(x)*np.cos(x)*(S[0,5]*np.cos(x)**2 + S[1,5]*np.sin(x)**2) \
+         + (2*S[0,1]+S[5,5])*np.cos(x)**2*np.sin(x)**2
+    Sr31 = S[2,0]*np.cos(x)**2 + S[2,1]*np.sin(x)**2 + S[2,5]*np.cos(x)*np.sin(x)
+
+
+    return np.trapz(-Sr31/Sr11,x)/(2*np.pi)
 
 def compute_S_matrix(zdir,xtal):
     if xtal.lower() == 'ge':
