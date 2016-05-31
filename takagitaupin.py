@@ -4,7 +4,7 @@ import os
 from auxiliary import *
 from scipy.integrate import odeint, ode
 import matplotlib.pyplot as plt
-from smatrix import compute_S_matrix
+from smatrix import compute_S_matrix, compute_S_matrix_fast, mean_poisson
 from ttsolution import TTsolution
 
 def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
@@ -117,13 +117,11 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
     #normalization coefficient
     normcoef = np.sqrt(chih*chihbar)/chihbar*np.sign(C)*np.sqrt(gamma0/np.abs(gammah))
 
-    #%Calculate mean poisson's ratio
+    #Calculate mean poisson's ratio
     nu = 0
     if not R_bend == 'inf':
-        an, S, Cc = compute_S_matrix(hkl,crystal)
-        for s in S:        
-            nu -= s[2,0]/s[0,0]
-        nu = nu/len(S)
+        S_matrix, C_matrix = compute_S_matrix_fast(hkl,crystal)
+        nu = mean_poisson(S_matrix)
         print "Using Poisson's ratio "+str(nu)
 
     #INTEGRATION
