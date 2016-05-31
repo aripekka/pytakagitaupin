@@ -6,6 +6,7 @@ from scipy.integrate import odeint, ode
 import matplotlib.pyplot as plt
 from smatrix import compute_S_matrix, compute_S_matrix_fast, mean_poisson
 from ttsolution import TTsolution
+import sys
 
 def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
 
@@ -141,6 +142,10 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/R/d));
 
     #Solve the equation
+
+    sys.stdout.write('Solving...0%')
+    sys.stdout.flush()
+    
     for step in range(len(scan)):
         def tt2solve(z,ksi):
             if is_escan:
@@ -159,6 +164,12 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
         res=r.integrate(0)     
    
         reflectivity.append(np.abs(normcoef[step]*res[0])**2)
+
+        sys.stdout.write('\rSolving...%0.1f%%' % (100*(step+1)/len(scan),))  
+        sys.stdout.flush()
+
+    sys.stdout.write('\r\nDone.\n')
+    sys.stdout.flush()
 
     #solution class    
     if is_escan:
