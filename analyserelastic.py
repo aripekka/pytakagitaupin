@@ -1,5 +1,5 @@
 from __future__ import division
-from smatrix import compute_S_matrix
+from smatrix import compute_S_matrix_fast
 import numpy as np
 import matplotlib.pyplot as plt
 
