@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 from auxiliary import rotation_matrix2 as rotation_matrix
+import time
 
 def compute_S_matrix_fast(zdir, xtal):
     '''
@@ -31,18 +32,15 @@ def compute_S_matrix_fast(zdir, xtal):
     Q = rotation_matrix(zdir)
    
     #Rotate the tensor
+    #New faster version according to
+    #http://stackoverflow.com/questions/4962606/fast-tensor-rotation-with-numpy
 
-    Crot = np.zeros((3,3,3,3))
-    for i in range(3):
-     for j in range(3):
-      for k in range(3):
-       for l in range(3):
-        for p in range(3):
-         for q in range(3):
-          for r in range(3):
-           for s in range(3):
-            Crot[i,j,k,l]=Crot[i,j,k,l]+Q[i,p]*Q[j,q]*Q[k,r]*Q[l,s]*Cc[p,q,r,s]     
-
+    QQ = np.outer(Q,Q)
+    QQQQ = np.outer(QQ,QQ).reshape(4*Q.shape)
+    axes = ((0, 2, 4, 6), (0, 1, 2, 3))
+    Crot = np.tensordot(QQQQ, Cc, axes)
+    
+    #Assemble the stiffness matrix
     C = np.array([
         [Crot[0,0,0,0], Crot[0,0,1,1], Crot[0,0,2,2], Crot[0,0,1,2], Crot[0,0,0,2], Crot[0,0,0,1]],
         [Crot[1,1,0,0], Crot[1,1,1,1], Crot[1,1,2,2], Crot[1,1,1,2], Crot[1,1,0,2], Crot[1,1,0,1]],
@@ -50,10 +48,10 @@ def compute_S_matrix_fast(zdir, xtal):
         [Crot[2,1,0,0], Crot[2,1,1,1], Crot[2,1,2,2], Crot[1,2,1,2], Crot[1,2,0,2], Crot[1,2,0,1]],
         [Crot[2,0,0,0], Crot[2,0,1,1], Crot[2,0,2,2], Crot[2,0,1,2], Crot[0,2,0,2], Crot[2,0,0,1]],
         [Crot[1,0,0,0], Crot[1,0,1,1], Crot[1,0,2,2], Crot[1,0,1,2], Crot[1,0,0,2], Crot[0,1,0,1]]
-    ])
-
+    ]).reshape((6,6))
+    
+    
     C=C*1e11 #in pascal
-
     S = np.linalg.inv(C)
 
     return S, C
