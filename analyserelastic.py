@@ -4,8 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def analyser_elastic(ttsolution,diameter):
+    '''
+    Code to compute the elastic line of a spherically bent analyser (diameter in mm). 
+    '''
+    #TODO generalise to angular scans
     if not ttsolution.scantype == 'energy':
-        raise ValueError()
+        raise ValueError('Currently the code supports only energy scans')
 
     #Takagi-Taupin curve
     scan = ttsolution.scan*1e-3 #scan in eV
@@ -20,8 +24,7 @@ def analyser_elastic(ttsolution,diameter):
     R = np.sqrt(X**2 + Y**2)
     TH = np.arctan2(Y, X)    
 
-    S=compute_S_matrix(ttsolution.hkl,ttsolution.crystal)
-    S=S[1][0]
+    S=compute_S_matrix_fast(ttsolution.hkl,ttsolution.crystal)[0]
 
     #the strain field
     Rb = ttsolution.R_bend
@@ -31,10 +34,6 @@ def analyser_elastic(ttsolution,diameter):
     phi0 = np.arctan(S[2,5]/(S[2,1]-S[2,0]))
 
     epsilon = (A+B*np.cos(2*TH+phi0))*(R/Rb)**2
-
-    plt.imshow(epsilon)
-    plt.colorbar()
-    plt.figure()
 
     #energy shift map
     deltaE = -epsilon*ttsolution.E0*1e3 
