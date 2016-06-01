@@ -8,7 +8,19 @@ from smatrix import compute_S_matrix, compute_S_matrix_fast, mean_poisson
 from ttsolution import TTsolution
 import sys
 
-def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
+def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
+    '''
+    1D TT-solver.
+    
+    Input:
+    scantype = 'energy' or 'angle'
+    scan =  relative to the Bragg's energy in meV (energy scan) OR relative to the Bragg's angle in arcsec (angle scan)
+    constant = incidence angle in degrees (energy scan) OR photon energy in keV (angle scan) 
+    hkl = [h,k,l] (Miller indices)
+    crystal = currently only 'si' is supported
+    thickness = crystal thickness in microns
+    bending = 'None' OR ('spherical',R_bend) OR ('cylindrical',R_bend), where R_bend is in meters 
+    '''
 
     if scantype == 'energy':
         is_escan = True
@@ -120,7 +132,9 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
 
     #Calculate mean poisson's ratio
     nu = 0
-    if not R_bend == 'inf':
+
+    if not bending == 'None':
+        #TODO: different bendings have their own quirks, check for cylindrical
         S_matrix, C_matrix = compute_S_matrix_fast(hkl,crystal)
         nu = mean_poisson(S_matrix)
         print "Using Poisson's ratio "+str(nu)
@@ -129,17 +143,17 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
     reflectivity=[]
 
     #Define ODE and its Jacobian
-    def tt_equation(z,ksi,L,gamma0,gammah,eta,d,R,thickness,nu):
-        if R == 'inf':
+    def tt_equation(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
+        if bending == 'None':
             return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta)*ksi-np.sign(gammah))
-        else:
-            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/R/d)*ksi-np.sign(gammah));
+        elif bending[0] == 'spherical':
+            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/bending[1]/d)*ksi-np.sign(gammah));
 
-    def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,R,thickness,nu):
-        if R == 'inf':
+    def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
+        if bending == 'None':
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta))
-        else:
-            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/R/d));
+        elif bending[0] == 'spherical':
+            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/bending[1]/d));
 
     #Solve the equation
 
@@ -149,15 +163,15 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
     for step in range(len(scan)):
         def tt2solve(z,ksi):
             if is_escan:
-                return tt_equation(z,ksi,L[step],gamma0,gammah,eta[step],d,R_bend,thickness,nu)
+                return tt_equation(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu)
             else:
-                return tt_equation(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,R_bend,thickness,nu)
+                return tt_equation(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu)
 
         def jac(z,ksi):
             if is_escan:
-                return tt_jacobian(z,ksi,L[step],gamma0,gammah,eta[step],d,R_bend,thickness,nu)
+                return tt_jacobian(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu)
             else:
-                return tt_jacobian(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,R_bend,thickness,nu)
+                return tt_jacobian(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu)
 
         r=ode(tt2solve,jac).set_integrator('zvode',method='bdf',with_jacobian=True,min_step=1e-10,max_step=1e-6,nsteps=50000)
         r.set_initial_value(0,thickness)
@@ -179,6 +193,11 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,R_bend,thickness):
         scan = (scan, 'arcsec')
         constant = (constant,'keV')
 
+    if bending == 'None':
+        R_bend = 0
+    else:
+        R_bend = bending[1]
+    
     result = TTsolution(scan,reflectivity,scantype,crystal.lower(),hkl,(R_bend,'m'),thickness_tuple,constant)
 
     return result
