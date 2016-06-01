@@ -19,7 +19,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     hkl = [h,k,l] (Miller indices)
     crystal = currently only 'si' is supported
     thickness = crystal thickness in microns
-    bending = 'None' OR ('spherical',R_bend) OR ('cylindrical',R_bend), where R_bend is in meters 
+    bending = 'None' OR ('spherical',R_bend) OR ('cylindrical',R1,R2), where R_bend, R1, and R2 are in meters 
     '''
 
     if scantype == 'energy':
@@ -136,31 +136,59 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     if not bending == 'None':
         #TODO: different bendings have their own quirks, check for cylindrical
         S_matrix, C_matrix = compute_S_matrix_fast(hkl,crystal)
-        nu = mean_poisson(S_matrix)
-        print "Using Poisson's ratio "+str(nu)
+        #nu = mean_poisson(S_matrix)
+        
+        #test
+        S=S_matrix
+        
+        if bending[0] == 'cylindrical':
+            if bending[1] == 'inf':
+                invR1 = 0
+            else:
+                invR1 = 1/bending[1]
+
+            if bending[2] == 'inf':
+                invR2 = 0
+            else:            
+                invR2 = 1/bending[2]            
+        
+        elif bending[0] == 'spherical':
+            if bending[1] == 'inf':
+                invR1 = 0
+                invR2 = 0
+            else:
+                invR1 = 1/bending[1]
+                invR2 = 1/bending[1]
+        
+
+        bending_parameter = S[2,0]*(S[0,1]*invR2-S[1,1]*invR1)+S[2,1]*(S[1,0]*invR1-S[0,0]*invR2)
+        bending_parameter = -0.5*bending_parameter/(S[0,1]*S[1,0]-S[0,0]*S[1,1])
+        print bending_parameter
 
     #INTEGRATION
     reflectivity=[]
 
     #Define ODE and its Jacobian
     def tt_equation(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
-        if bending == 'None':
+        if bending[0] == 'None':
             return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta)*ksi-np.sign(gammah))
-        elif bending[0] == 'spherical':
-            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/bending[1]/d)*ksi-np.sign(gammah));
+        else:
+            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d)*ksi-np.sign(gammah))
+
 
     def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
-        if bending == 'None':
+        if bending[0] == 'None':
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta))
-        elif bending[0] == 'spherical':
-            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*nu/(1-nu)*(z-thickness/2)/bending[1]/d));
+        else:
+            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d))
+
 
     #Solve the equation
 
     sys.stdout.write('Solving...0%')
     sys.stdout.flush()
     
-    for step in range(len(scan)):
+    for step in xrange(len(scan)):
         def tt2solve(z,ksi):
             if is_escan:
                 return tt_equation(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu)
@@ -173,7 +201,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
             else:
                 return tt_jacobian(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu)
 
-        r=ode(tt2solve,jac).set_integrator('zvode',method='bdf',with_jacobian=True,min_step=1e-10,max_step=1e-6,nsteps=50000)
+        r=ode(tt2solve,jac).set_integrator('zvode',method='bdf',with_jacobian=True,min_step=1e-10,max_step=1e-4,nsteps=50000)
         r.set_initial_value(0,thickness)
         res=r.integrate(0)     
    
@@ -193,6 +221,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
         scan = (scan, 'arcsec')
         constant = (constant,'keV')
 
+    #TODO: add also the type of bending to the ttsolution
     if bending == 'None':
         R_bend = 0
     else:
