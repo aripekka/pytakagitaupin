@@ -106,7 +106,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
         chi0 = np.interp(E0, chienergy, chi[:,1]) + 1j*np.interp(E0, chienergy, chi[:,2])
         chih = np.interp(E0, chienergy, chi[:,3]) + 1j*np.interp(E0, chienergy, chi[:,4])
         chihbar = np.interp(E0, chienergy, chi[:,5]) + 1j*np.interp(E0, chienergy, chi[:,6])
-        print chi0, chih, chihbar
+
     #Deviation from backscattering
     deltawavelength = wavelength-2*d
     if is_escan:
@@ -160,7 +160,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
                 invR1 = 1/bending[1]
                 invR2 = 1/bending[1]
         
-
+        #Parameter according to http://arxiv.org/abs/1502.03059
         bending_parameter = S[2,0]*(S[0,1]*invR2-S[1,1]*invR1)+S[2,1]*(S[1,0]*invR1-S[0,0]*invR2)
         bending_parameter = -0.5*bending_parameter/(S[0,1]*S[1,0]-S[0,0]*S[1,1])
         print bending_parameter
