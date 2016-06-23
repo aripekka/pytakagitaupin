@@ -170,14 +170,14 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
 
     #Define ODE and its Jacobian
     def tt_equation(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
-        if bending[0] == 'None':
+        if bending == 'None':
             return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta)*ksi-np.sign(gammah))
         else:
             return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d)*ksi-np.sign(gammah))
 
 
     def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
-        if bending[0] == 'None':
+        if bending == 'None':
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta))
         else:
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d))
