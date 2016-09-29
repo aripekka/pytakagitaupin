@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 import os
 from auxiliary import *
@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from smatrix import compute_S_matrix, compute_S_matrix_fast, mean_poisson
 from ttsolution import TTsolution
 import sys
+try:
+    xrange
+except NameError:
+    xrange = range
 
 def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     '''
@@ -79,23 +83,23 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     try:
         chi = np.loadtxt(filestring)
     except:
-        print 'Error loading chitable! Check that ' + filestring \
-              + ' exists and is correctly formatted!'
+        print('Error loading chitable! Check that ' + filestring \
+              + ' exists and is correctly formatted!')
         raise Exception()        
 
     #conversion to meV
     chienergy = chi[:,0]*1e6
 
-    print 'Computing elastic line for ' + str(hkl) + ' reflection of ' \
-          + crystal[0].upper() + crystal[1:].lower() + '-crystal'
+    print('Computing elastic line for ' + str(hkl) + ' reflection of ' \
+          + crystal[0].upper() + crystal[1:].lower() + '-crystal')
     if is_escan:
-        print 'Scanning the incident energy'  
+        print('Scanning the incident energy')
     else:
-        print 'Scanning the incidence angle'  
+        print('Scanning the incidence angle')
 
     #Polarization (TODO: include pi-polarization)
     C = 1;
-    print 'Assuming sigma-polarization'
+    print('Assuming sigma-polarization')
 
     #Interpolation
     if is_escan:
@@ -163,7 +167,7 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
         #Parameter according to http://arxiv.org/abs/1502.03059
         bending_parameter = S[2,0]*(S[0,1]*invR2-S[1,1]*invR1)+S[2,1]*(S[1,0]*invR1-S[0,0]*invR2)
         bending_parameter = -0.5*bending_parameter/(S[0,1]*S[1,0]-S[0,0]*S[1,1])
-        print bending_parameter
+        print(bending_parameter)
 
     #INTEGRATION
     reflectivity=[]
