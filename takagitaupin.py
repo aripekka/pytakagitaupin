@@ -128,9 +128,6 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     #Incidence parameter
     eta = np.sqrt(gamma0/np.abs(gammah)) / (np.abs(C)*np.sqrt(chih*chihbar)) \
         * (-wavelength/d*(wavelength/(2*d)-np.sin(th2)) - chi0*(gammah/gamma0-1)/2)
-    #eta = np.sqrt(gamma0/np.abs(gammah)) / (np.abs(C)*np.sqrt(chih*chihbar)) \
-    #    * (-wavelength/d*(deltawavelength/(2*d)+deltath**2/2-deltath**4/24+deltath**6/720) - chi0*(gammah/gamma0-1)/2)
-
     #normalization coefficient
     normcoef = np.sqrt(chih*chihbar)/chihbar*np.sign(C)*np.sqrt(gamma0/np.abs(gammah))
 
@@ -163,6 +160,11 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
             else:
                 invR1 = 1/bending[1]
                 invR2 = 1/bending[1]
+
+
+        #This takes into account the rotation of the diffractive planes by the bending deep in the crystal
+        rotational_parameter = np.sqrt(gamma0/np.abs(gammah)) / (np.abs(C)*np.sqrt(chih*chihbar)) \
+                               *wavelength/d*np.cos(th2)**2/np.sin(th2)*invR1
         
         #Parameter according to http://arxiv.org/abs/1502.03059
         bending_parameter = S[2,0]*(S[0,1]*invR2-S[1,1]*invR1)+S[2,1]*(S[1,0]*invR1-S[0,0]*invR2)
@@ -173,18 +175,18 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     reflectivity=[]
 
     #Define ODE and its Jacobian
-    def tt_equation(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
+    def tt_equation(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu,rot):
         if bending == 'None':
             return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta)*ksi-np.sign(gammah))
         else:
-            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d)*ksi-np.sign(gammah))
+            return np.pi*1j/L*(ksi**2-2*(np.sign(gammah)*(eta+rot*z)+L*2*bending_parameter*(z-thickness/2)/d)*ksi-np.sign(gammah))
 
 
-    def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu):
+    def tt_jacobian(z,ksi,L,gamma0,gammah,eta,d,bending,thickness,nu,rot):
         if bending == 'None':
             return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta))
         else:
-            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*eta+L*2*bending_parameter*(z-thickness/2)/d))
+            return np.pi*1j/L*(2*ksi-2*(np.sign(gammah)*(eta+rot*z)+L*2*bending_parameter*(z-thickness/2)/d))
 
 
     #Solve the equation
@@ -195,15 +197,15 @@ def takagitaupin(scantype,scan,constant,hkl,crystal,thickness,bending = 'None'):
     for step in xrange(len(scan)):
         def tt2solve(z,ksi):
             if is_escan:
-                return tt_equation(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu)
+                return tt_equation(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu,rotational_parameter[step])
             else:
-                return tt_equation(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu)
+                return tt_equation(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu,rotational_parameter[step])
 
         def jac(z,ksi):
             if is_escan:
-                return tt_jacobian(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu)
+                return tt_jacobian(z,ksi,L[step],gamma0,gammah,eta[step],d,bending,thickness,nu,rotational_parameter[step])
             else:
-                return tt_jacobian(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu)
+                return tt_jacobian(z,ksi,L[step],gamma0[step],gammah[step],eta[step],d,bending,thickness,nu,rotational_parameter[step])
 
         r=ode(tt2solve,jac).set_integrator('zvode',method='bdf',with_jacobian=True,min_step=1e-10,max_step=1e-4,nsteps=50000)
         r.set_initial_value(0,thickness)
