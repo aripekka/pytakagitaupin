@@ -1,4 +1,7 @@
 # pytakagitaupin
+
+##THIS PROJECT IS OBSOLETE. FOR NEW VERSION, SEE https://github.com/aripekka/pyTTE
+
 Python solver for 1D Takagi-Taupin equation
 
 Usage:
