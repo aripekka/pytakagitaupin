@@ -1,6 +1,6 @@
 # pytakagitaupin
 
-##THIS PROJECT IS OBSOLETE. FOR NEW VERSION, SEE https://github.com/aripekka/pyTTE
+_THIS PROJECT IS OBSOLETE. FOR NEW VERSION, SEE https://github.com/aripekka/pyTTE_
 
 Python solver for 1D Takagi-Taupin equation
 
